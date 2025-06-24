@@ -8,6 +8,9 @@ from django.test import TestCase, Client
 from django.contrib.auth.models import User
 from django.urls import reverse
 from django.contrib.auth import authenticate
+from django.test import override_settings
+from django.middleware.csrf import get_token
+import json
 from .models import Todo
 
 
@@ -200,3 +203,103 @@ class TodoCRUDTestCase(TestCase):
         )
         todos = Todo.objects.filter(user=self.user1)
         self.assertEqual(todos.first(), newer_todo)
+
+
+class TodoToggleCSRFTestCase(TestCase):
+    """Todo切り替え機能のCSRF保護テストケース。
+    
+    CSRF トークンありの正常系とCSRF トークンなしの異常系をテストし、
+    セキュリティ機能が適切に動作することを確認します。
+    """
+    
+    def setUp(self) -> None:
+        """テスト用の初期データを設定。
+        
+        ユーザーとTodoアイテムを作成し、CSRF テストに使用します。
+        """
+        self.client = Client(enforce_csrf_checks=True)
+        self.user = User.objects.create_user(
+            username='testuser',
+            password='testpass123'
+        )
+        self.todo = Todo.objects.create(
+            title='Test Todo',
+            description='Test Description',
+            user=self.user,
+            completed=False
+        )
+        self.client.login(username='testuser', password='testpass123')
+
+    def test_todo_toggle_with_valid_csrf_token(self) -> None:
+        """CSRFトークンありでTodo切り替えが正常に動作することをテスト。
+        
+        正しいCSRFトークンを含むPOSTリクエストで、
+        Todoの完了状態が正常に切り替わることを確認します。
+        """
+        # CSRFトークンを取得
+        response = self.client.get(reverse('todo_list'))
+        csrf_token = get_token(response.wsgi_request)
+        
+        # 初期状態の確認
+        self.assertFalse(self.todo.completed)
+        
+        # CSRFトークン付きでPOSTリクエスト
+        response = self.client.post(
+            reverse('todo_toggle', args=[self.todo.pk]),
+            data={'csrfmiddlewaretoken': csrf_token},
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest'
+        )
+        
+        # レスポンスの確認
+        self.assertEqual(response.status_code, 200)
+        response_data = json.loads(response.content)
+        self.assertTrue(response_data['completed'])
+        
+        # データベースの状態確認
+        self.todo.refresh_from_db()
+        self.assertTrue(self.todo.completed)
+
+    def test_todo_toggle_without_csrf_token(self) -> None:
+        """CSRFトークンなしでTodo切り替えが403エラーになることをテスト。
+        
+        CSRFトークンを含まないPOSTリクエストで、
+        403 Forbiddenエラーが発生することを確認します。
+        """
+        # 初期状態の確認
+        self.assertFalse(self.todo.completed)
+        
+        # CSRFトークンなしでPOSTリクエスト
+        response = self.client.post(
+            reverse('todo_toggle', args=[self.todo.pk]),
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest'
+        )
+        
+        # 403エラーの確認
+        self.assertEqual(response.status_code, 403)
+        
+        # データベースの状態が変更されていないことを確認
+        self.todo.refresh_from_db()
+        self.assertFalse(self.todo.completed)
+
+    def test_todo_toggle_with_invalid_csrf_token(self) -> None:
+        """無効なCSRFトークンでTodo切り替えが403エラーになることをテスト。
+        
+        間違ったCSRFトークンを含むPOSTリクエストで、
+        403 Forbiddenエラーが発生することを確認します。
+        """
+        # 初期状態の確認
+        self.assertFalse(self.todo.completed)
+        
+        # 無効なCSRFトークンでPOSTリクエスト
+        response = self.client.post(
+            reverse('todo_toggle', args=[self.todo.pk]),
+            data={'csrfmiddlewaretoken': 'invalid_token'},
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest'
+        )
+        
+        # 403エラーの確認
+        self.assertEqual(response.status_code, 403)
+        
+        # データベースの状態が変更されていないことを確認
+        self.todo.refresh_from_db()
+        self.assertFalse(self.todo.completed)
