@@ -88,3 +88,29 @@ uv add package_name
 - ドキュメントとUIは日本語
 - ソースコードのコメントも日本語
 - Docstringはgoogleスタイルで、引数と戻り値は型ヒントを使用
+
+### Gitコミット規約
+コミットメッセージは以下の形式に従う：
+
+```
+<type>: <description>
+
+<body>
+```
+
+**コミットタイプ：**
+- `feat:` - 新機能の追加
+- `fix:` - バグ修正
+- `docs:` - ドキュメントの変更
+- `style:` - コードフォーマットの変更（機能に影響しない）
+- `refactor:` - リファクタリング
+- `test:` - テストの追加・修正
+- `chore:` - ビルドプロセスやツールの変更
+
+**コミット内容は日本語で記載：**
+```bash
+# 例
+git commit -m "feat: ユーザー認証機能を追加"
+git commit -m "fix: Todo削除時のバリデーションエラーを修正"
+git commit -m "docs: READMEにインストール手順を追加"
+```
