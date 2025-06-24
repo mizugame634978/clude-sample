@@ -181,6 +181,10 @@ todoapp/
 - 新しい機能を追加した場合は、対応するテストコードも作成してください
 - 本番環境では、`DEBUG = False` に設定し、適切なデータベースを使用してください
 
+## Claude Code設定
+
+`.claude-code-settings.json`はチーム開発用のClaude Code自動実行設定です。`mkdir -p ~/.config/claude-code && cp .claude-code-settings.json ~/.config/claude-code/settings.json`で個人環境に設定してください。
+
 ## ライセンス
 
 このプロジェクトはMITライセンスの下で公開されています。

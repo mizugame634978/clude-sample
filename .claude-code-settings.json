@@ -1,0 +1,162 @@
+{
+  "autoExecution": {
+    "enabled": true,
+    "description": "Claude Code自動実行設定 - チーム共有用",
+    "allowedCommands": [
+      "git status",
+      "git diff",
+      "git log",
+      "git log --oneline -5",
+      "git log --oneline -10",
+      "git branch",
+      "git branch -v",
+      "ls",
+      "ls -la",
+      "ls -l",
+      "pwd",
+      "cat",
+      "head",
+      "tail",
+      "grep",
+      "find",
+      "python manage.py test",
+      "uv run python manage.py test",
+      "uv run python manage.py test --keepdb",
+      "npm test",
+      "pytest",
+      "python -m pytest",
+      "gh auth status",
+      "gh pr list",
+      "gh issue list"
+    ],
+    "allowedPatterns": [
+      "git add *.py",
+      "git add *.md",
+      "git add *.json",
+      "git add templates/",
+      "git add docs/",
+      "git add static/",
+      "uv run python manage.py test todo.tests.*",
+      "cat *.py",
+      "cat *.md",
+      "cat *.json",
+      "head -n 20 *",
+      "tail -n 20 *",
+      "grep -r * .",
+      "find . -name *",
+      "ls */",
+      "gh pr view *",
+      "gh issue view *"
+    ],
+    "categories": {
+      "readOnly": {
+        "description": "読み取り専用コマンド（安全）",
+        "commands": [
+          "git status",
+          "git diff", 
+          "git log",
+          "git branch",
+          "ls",
+          "pwd",
+          "cat",
+          "head",
+          "tail",
+          "grep",
+          "find"
+        ]
+      },
+      "testing": {
+        "description": "テスト関連（安全）",
+        "commands": [
+          "python manage.py test",
+          "uv run python manage.py test",
+          "npm test",
+          "pytest"
+        ]
+      },
+      "safeGitOps": {
+        "description": "軽微なGit操作（比較的安全）",
+        "commands": [
+          "git add *.py",
+          "git add *.md",
+          "git add templates/",
+          "git add docs/"
+        ]
+      },
+      "githubCli": {
+        "description": "GitHub CLI読み取り操作",
+        "commands": [
+          "gh auth status",
+          "gh pr list",
+          "gh pr view",
+          "gh issue list",
+          "gh issue view"
+        ]
+      }
+    },
+    "restrictedCommands": {
+      "description": "手動承認が必要なコマンド",
+      "deletion": [
+        "rm",
+        "rmdir", 
+        "git rm",
+        "mv"
+      ],
+      "criticalGitOps": [
+        "git commit",
+        "git push",
+        "git merge",
+        "git rebase",
+        "git reset",
+        "git cherry-pick"
+      ],
+      "systemChanges": [
+        "sudo",
+        "chmod",
+        "chown",
+        "python manage.py migrate",
+        "python manage.py makemigrations",
+        "python manage.py createsuperuser",
+        "npm install",
+        "uv add"
+      ],
+      "githubActions": [
+        "gh pr create",
+        "gh pr merge",
+        "gh issue create",
+        "gh issue close"
+      ]
+    },
+    "projectSpecific": {
+      "django": {
+        "safeCommands": [
+          "uv run python manage.py check",
+          "uv run python manage.py validate",
+          "uv run python manage.py test --dry-run"
+        ],
+        "restrictedCommands": [
+          "uv run python manage.py migrate",
+          "uv run python manage.py makemigrations",
+          "uv run python manage.py loaddata",
+          "uv run python manage.py dumpdata"
+        ]
+      }
+    }
+  },
+  "teamSettings": {
+    "purpose": "チーム開発でのClaude Code使用時の標準設定",
+    "lastUpdated": "2025-06-24",
+    "maintainer": "development-team",
+    "usage": {
+      "setup": "このファイルを ~/.config/claude-code/settings.json にコピーして使用",
+      "sharing": "プロジェクトルートに配置してチームで共有",
+      "customization": "プロジェクト固有の設定は projectSpecific セクションで調整"
+    },
+    "benefits": [
+      "開発効率の向上（日常的な確認作業の自動化）",
+      "セキュリティの維持（重要な操作は手動承認）",
+      "チーム間での一貫した運用",
+      "新メンバーのオンボーディング支援"
+    ]
+  }
+}
