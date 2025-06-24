@@ -92,8 +92,16 @@ uv add package_name
 ### Gitコミット規約
 コミットメッセージは以下の形式に従う：
 
+#### 通常のコミット
 ```
 <type>: <description>
+
+<body>
+```
+
+#### Issue対応のコミット
+```
+#<issue番号> <type>: <description>
 
 <body>
 ```
@@ -109,10 +117,13 @@ uv add package_name
 
 **コミット内容は日本語で記載：**
 ```bash
-# 例
+# 通常のコミット例
 git commit -m "feat: ユーザー認証機能を追加"
 git commit -m "fix: Todo削除時のバリデーションエラーを修正"
-git commit -m "docs: READMEにインストール手順を追加"
+
+# Issue対応のコミット例
+git commit -m "#1 feat: Todo優先度機能を追加"
+git commit -m "#2 fix: ログイン時のCSRFエラーを修正"
 ```
 
 ## 新人エンジニア作業フロー
@@ -155,24 +166,24 @@ EOF
 
 #### 3. 作業ブランチ作成と実装
 ```bash
-# 適切なブランチ名で作業開始
-git checkout -b fix/具体的な問題名
+# Issue対応のブランチ名規則
+git checkout -b feature/issue番号
 
 # 実装とテスト
 uv run python manage.py test
 
-# コミット（Gitコミット規約に従う）
+# コミット（Issue番号付きコミット規約に従う）
 git add .
-git commit -m "fix: 問題の具体的な修正内容"
+git commit -m "#issue番号 feat: 機能の具体的な実装内容"
 ```
 
 #### 4. プルリクエスト作成
 ```bash
 # リモートにプッシュ
-git push -u origin ブランチ名
+git push -u origin feature/issue番号
 
-# PR作成
-gh pr create --title "fix: 問題の具体的な修正内容" --body "$(cat <<'EOF'
+# PR作成（Issue番号を含める）
+gh pr create --title "#issue番号 feat: 機能の具体的な実装内容" --body "$(cat <<'EOF'
 ## 概要
 Issueで報告された問題の修正
 
@@ -207,7 +218,7 @@ EOF
 # 追加作業（テスト追加など）
 # 同じブランチで追加コミット
 git add .
-git commit -m "test: レビュー指摘事項への対応内容"
+git commit -m "#issue番号 test: レビュー指摘事項への対応内容"
 git push
 
 # レビュアーに対応完了を報告
@@ -220,7 +231,7 @@ git checkout main
 git pull
 
 # 作業ブランチを削除
-git branch -d ブランチ名
+git branch -d feature/issue番号
 ```
 
 ### ファイル整理の原則
