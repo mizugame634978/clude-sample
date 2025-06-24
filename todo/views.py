@@ -4,28 +4,29 @@
 ユーザー認証とTodoのCRUD操作を処理します。
 """
 
+from typing import Optional
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib import messages
-from django.http import JsonResponse
+from django.http import HttpRequest, HttpResponse, HttpResponseRedirect, JsonResponse
 from .models import Todo
 from .forms import TodoForm
 
 
-def login_view(request):
+def login_view(request: HttpRequest) -> HttpResponse:
     """ユーザーログイン処理を行うビュー。
     
     GETリクエストの場合はログインフォームを表示し、
     POSTリクエストの場合は認証を行います。
     
     Args:
-        request (HttpRequest): HTTPリクエストオブジェクト。
+        request: HTTPリクエストオブジェクト。
         
     Returns:
-        HttpResponse: ログインフォームのレンダリング結果、
-                     または成功時はTodo一覧ページへのリダイレクト。
+        ログインフォームのレンダリング結果、
+        または成功時はTodo一覧ページへのリダイレクト。
     """
     if request.method == 'POST':
         username = request.POST.get('username')
@@ -39,18 +40,18 @@ def login_view(request):
     return render(request, 'registration/login.html')
 
 
-def register_view(request):
+def register_view(request: HttpRequest) -> HttpResponse:
     """新規ユーザー登録処理を行うビュー。
     
     GETリクエストの場合は登録フォームを表示し、
     POSTリクエストの場合は新しいユーザーを作成します。
     
     Args:
-        request (HttpRequest): HTTPリクエストオブジェクト。
+        request: HTTPリクエストオブジェクト。
         
     Returns:
-        HttpResponse: 登録フォームのレンダリング結果、
-                     または成功時はログインページへのリダイレクト。
+        登録フォームのレンダリング結果、
+        または成功時はログインページへのリダイレクト。
     """
     if request.method == 'POST':
         form = UserCreationForm(request.POST)
@@ -64,51 +65,51 @@ def register_view(request):
     return render(request, 'registration/register.html', {'form': form})
 
 
-def logout_view(request):
+def logout_view(request: HttpRequest) -> HttpResponseRedirect:
     """ユーザーログアウト処理を行うビュー。
     
     現在のユーザーをログアウトし、ログインページにリダイレクトします。
     
     Args:
-        request (HttpRequest): HTTPリクエストオブジェクト。
+        request: HTTPリクエストオブジェクト。
         
     Returns:
-        HttpResponseRedirect: ログインページへのリダイレクト。
+        ログインページへのリダイレクト。
     """
     logout(request)
     return redirect('login')
 
 
 @login_required
-def todo_list(request):
+def todo_list(request: HttpRequest) -> HttpResponse:
     """ログイン中のユーザーのTodo一覧を表示するビュー。
     
     現在のユーザーに属するすべてのTodoを取得し、
     一覧ページとして表示します。
     
     Args:
-        request (HttpRequest): HTTPリクエストオブジェクト。
+        request: HTTPリクエストオブジェクト。
         
     Returns:
-        HttpResponse: Todo一覧ページのレンダリング結果。
+        Todo一覧ページのレンダリング結果。
     """
     todos = Todo.objects.filter(user=request.user)
     return render(request, 'todo/todo_list.html', {'todos': todos})
 
 
 @login_required
-def todo_create(request):
+def todo_create(request: HttpRequest) -> HttpResponse:
     """新しいTodoを作成するビュー。
     
     GETリクエストの場合は作成フォームを表示し、
     POSTリクエストの場合は新しいTodoを作成します。
     
     Args:
-        request (HttpRequest): HTTPリクエストオブジェクト。
+        request: HTTPリクエストオブジェクト。
         
     Returns:
-        HttpResponse: Todo作成フォームのレンダリング結果、
-                     または成功時はTodo一覧ページへのリダイレクト。
+        Todo作成フォームのレンダリング結果、
+        または成功時はTodo一覧ページへのリダイレクト。
     """
     if request.method == 'POST':
         form = TodoForm(request.POST)
@@ -124,19 +125,19 @@ def todo_create(request):
 
 
 @login_required
-def todo_update(request, pk):
+def todo_update(request: HttpRequest, pk: int) -> HttpResponse:
     """既存のTodoを更新するビュー。
     
     指定されたIDのTodoを取得し、編集フォームを表示します。
     現在のユーザーが所有するTodoのみ編集可能です。
     
     Args:
-        request (HttpRequest): HTTPリクエストオブジェクト。
-        pk (int): 更新するTodoの主キー。
+        request: HTTPリクエストオブジェクト。
+        pk: 更新するTodoの主キー。
         
     Returns:
-        HttpResponse: Todo編集フォームのレンダリング結果、
-                     または成功時はTodo一覧ページへのリダイレクト。
+        Todo編集フォームのレンダリング結果、
+        または成功時はTodo一覧ページへのリダイレクト。
                      
     Raises:
         Http404: 指定されたTodoが存在しない、または現在のユーザーが所有していない場合。
@@ -154,19 +155,19 @@ def todo_update(request, pk):
 
 
 @login_required
-def todo_delete(request, pk):
+def todo_delete(request: HttpRequest, pk: int) -> HttpResponse:
     """既存のTodoを削除するビュー。
     
     指定されたIDのTodoを取得し、削除確認ページを表示します。
     現在のユーザーが所有するTodoのみ削除可能です。
     
     Args:
-        request (HttpRequest): HTTPリクエストオブジェクト。
-        pk (int): 削除するTodoの主キー。
+        request: HTTPリクエストオブジェクト。
+        pk: 削除するTodoの主キー。
         
     Returns:
-        HttpResponse: 削除確認ページのレンダリング結果、
-                     または成功時はTodo一覧ページへのリダイレクト。
+        削除確認ページのレンダリング結果、
+        または成功時はTodo一覧ページへのリダイレクト。
                      
     Raises:
         Http404: 指定されたTodoが存在しない、または現在のユーザーが所有していない場合。
@@ -180,19 +181,19 @@ def todo_delete(request, pk):
 
 
 @login_required
-def todo_toggle(request, pk):
+def todo_toggle(request: HttpRequest, pk: int) -> JsonResponse:
     """Todoの完了状態を切り替えるビュー。
     
     指定されたIDのTodoの完了状態を反転し、
     JSONレスポンスで新しい状態を返します。
     
     Args:
-        request (HttpRequest): HTTPリクエストオブジェクト。
-        pk (int): 状態を切り替えるTodoの主キー。
+        request: HTTPリクエストオブジェクト。
+        pk: 状態を切り替えるTodoの主キー。
         
     Returns:
-        JsonResponse: 新しい完了状態を含むJSONレスポンス。
-                     例: {'completed': True}
+        新しい完了状態を含むJSONレスポンス。
+        例: {'completed': True}
                      
     Raises:
         Http404: 指定されたTodoが存在しない、または現在のユーザーが所有していない場合。

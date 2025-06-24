@@ -4,6 +4,7 @@
 タスク管理のためのメインTodoモデルを定義します。
 """
 
+from __future__ import annotations
 from django.db import models
 from django.contrib.auth.models import User
 
@@ -16,12 +17,12 @@ class Todo(models.Model):
     作成・更新のタイムスタンプを持ちます。
     
     Attributes:
-        title (CharField): todoアイテムのタイトル（最大200文字）。
-        description (TextField): todoの詳細説明（オプション）。
-        completed (BooleanField): todoが完了しているかどうか（デフォルト: False）。
-        created_at (DateTimeField): todoが作成された日時。
-        updated_at (DateTimeField): todoが最後に更新された日時。
-        user (ForeignKey): このtodoを所有するユーザーへの参照。
+        title: todoアイテムのタイトル（最大200文字）。
+        description: todoの詳細説明（オプション）。
+        completed: todoが完了しているかどうか（デフォルト: False）。
+        created_at: todoが作成された日時。
+        updated_at: todoが最後に更新された日時。
+        user: このtodoを所有するユーザーへの参照。
     """
     
     title = models.CharField(max_length=200, verbose_name='タイトル')
@@ -37,10 +38,10 @@ class Todo(models.Model):
         verbose_name_plural = 'Todos'
         ordering = ['-created_at']
 
-    def __str__(self):
+    def __str__(self) -> str:
         """Todoの文字列表現を返す。
         
         Returns:
-            str: todoアイテムのタイトル。
+            todoアイテムのタイトル。
         """
         return self.title

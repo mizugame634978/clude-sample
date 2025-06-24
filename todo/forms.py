@@ -4,6 +4,7 @@
 Todo作成・編集のためのフォーム処理を定義します。
 """
 
+from __future__ import annotations
 from django import forms
 from .models import Todo
 
@@ -23,9 +24,9 @@ class TodoForm(forms.ModelForm):
         """TodoFormのメタ設定。
         
         Attributes:
-            model (Model): フォームのベースとなるTodoモデル。
-            fields (list): フォームに含めるフィールドのリスト。
-            widgets (dict): 各フィールドのウィジェット設定。
+            model: フォームのベースとなるTodoモデル。
+            fields: フォームに含めるフィールドのリスト。
+            widgets: 各フィールドのウィジェット設定。
         """
         model = Todo
         fields = ['title', 'description']
