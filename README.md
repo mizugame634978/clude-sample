@@ -26,7 +26,8 @@ Djangoで作成されたログイン機能付きTodoアプリケーションで�
 - **バックエンド**
   - Python 3.10+
   - Django 5.2.3
-  - SQLite (開発環境)
+  - PostgreSQL 15 (Docker環境)
+  - SQLite (ローカル開発・テスト環境)
 
 - **フロントエンド**
   - HTML5
@@ -36,46 +37,85 @@ Djangoで作成されたログイン機能付きTodoアプリケーションで�
 - **パッケージ管理**
   - uv (Python パッケージマネージャー)
 
+- **インフラ**
+  - Docker & Docker Compose
+  - PostgreSQL 15
+
 - **テスト**
   - Django Test Framework
 
 ## 初期設定
 
-### 1. リポジトリのクローン
+### Docker環境（推奨）
+
+#### 前提条件
+- Docker
+- Docker Compose
+
+#### セットアップ手順
 
 ```bash
+# 1. リポジトリのクローン
 git clone <repository-url>
 cd todoapp
+
+# 2. Docker環境の起動
+docker-compose up -d
+
+# 3. データベースの初期化
+docker-compose exec web uv run python manage.py migrate
+
+# 4. 管理者ユーザーの作成（オプション）
+docker-compose exec web uv run python manage.py createsuperuser
 ```
 
-### 2. uvのインストール
+### ローカル環境
+
+#### 前提条件
+- Python 3.10+
+- uv
+
+#### セットアップ手順
 
 ```bash
+# 1. リポジトリのクローン
+git clone <repository-url>
+cd todoapp
+
+# 2. uvのインストール
 curl -LsSf https://astral.sh/uv/install.sh  < /dev/null |  sh
 source $HOME/.local/bin/env
-```
 
-### 3. 依存関係のインストール
-
-```bash
+# 3. 依存関係のインストール
 uv sync
-```
 
-### 4. データベースの初期化
-
-```bash
+# 4. データベースの初期化
 uv run python manage.py migrate
-```
 
-### 5. 管理者ユーザーの作成（オプション）
-
-```bash
+# 5. 管理者ユーザーの作成（オプション）
 uv run python manage.py createsuperuser
 ```
 
 ## プロジェクトの起動方法
 
-### 開発サーバーの起動
+### 方法1: Docker Compose（推奨）
+
+PostgreSQLを使用した本番に近い環境でアプリケーションを実行：
+
+```bash
+# Docker Composeでアプリケーションを起動
+docker-compose up -d
+
+# データベースの初期化（初回のみ）
+docker-compose exec web uv run python manage.py migrate
+
+# 管理者ユーザーの作成（オプション）
+docker-compose exec web uv run python manage.py createsuperuser
+```
+
+サーバーが起動したら、ブラウザで `http://127.0.0.1:8000/` にアクセスしてください。
+
+### 方法2: ローカル環境（開発用）
 
 ```bash
 source $HOME/.local/bin/env
@@ -92,9 +132,23 @@ uv run python manage.py runserver
 
 ## テストの実行方法
 
-### 全テストの実行
+### Docker環境でのテスト実行
 
 ```bash
+# SQLiteを使用してテスト実行（高速）
+docker-compose exec web env USE_SQLITE_FOR_TESTS=true uv run python manage.py test
+
+# PostgreSQLを使用してテスト実行
+docker-compose exec web uv run python manage.py test
+```
+
+### ローカル環境でのテスト実行
+
+```bash
+# SQLiteを使用してテスト実行（推奨）
+USE_SQLITE_FOR_TESTS=true uv run python manage.py test
+
+# PostgreSQL環境でのテスト実行（DBが起動している場合）
 uv run python manage.py test
 ```
 
