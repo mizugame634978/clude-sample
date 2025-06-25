@@ -131,6 +131,10 @@ git commit -m "#2 fix: ログイン時のCSRFエラーを修正"
 ### Issue駆動開発のワークフロー
 要件の依頼を受けた際は、以下の手順で作業を進める：
 
+**重要な原則**: 
+- 完了したIssueはクローズしてもよいが、削除してはならない
+- Issue履歴はプロジェクトの貴重な記録として保持する
+
 #### 1. 問題の分析と課題整理
 ```bash
 # TodoWriteツールで作業タスクを管理
@@ -222,6 +226,10 @@ git commit -m "#issue番号 test: レビュー指摘事項への対応内容"
 git push
 
 # レビュアーに対応完了を報告
+# PRコメントには必ず署名を記載
+gh pr comment プル番号 --body "コメント内容
+
+🤖 Generated with [Claude Code](https://claude.ai/code)"
 ```
 
 #### 6. マージ後のクリーンアップ
@@ -232,6 +240,9 @@ git pull
 
 # 作業ブランチを削除
 git branch -d feature/issue番号
+
+# 完了したIssueをクローズ（削除は禁止）
+gh issue close issue番号 --comment "PRのマージにより対応完了"
 ```
 
 ### ファイル整理の原則
