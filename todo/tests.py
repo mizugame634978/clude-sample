@@ -10,7 +10,10 @@ from django.urls import reverse
 from django.contrib.auth import authenticate
 from django.test import override_settings
 from django.middleware.csrf import get_token
+from django.utils import timezone
+from django.core.exceptions import ValidationError
 import json
+from datetime import datetime, timedelta
 from .models import Todo
 
 
@@ -303,3 +306,238 @@ class TodoToggleCSRFTestCase(TestCase):
         # データベースの状態が変更されていないことを確認
         self.todo.refresh_from_db()
         self.assertFalse(self.todo.completed)
+
+
+class TodoDueDateTestCase(TestCase):
+    """Todo期限日機能のテストケース。
+    
+    期限日フィールドの追加、バリデーション、期限ステータス判定機能のテストを行います。
+    """
+    
+    def setUp(self):
+        """テスト用の初期データを設定。"""
+        self.user = User.objects.create_user(
+            username='testuser',
+            password='testpass123'
+        )
+    
+    def test_todo_with_due_date_creation(self):
+        """期限日付きTodoの作成をテスト。"""
+        due_date = timezone.now() + timedelta(days=7)
+        todo = Todo.objects.create(
+            title='期限日付きTodo',
+            description='テスト用説明',
+            user=self.user,
+            due_date=due_date
+        )
+        
+        self.assertEqual(todo.title, '期限日付きTodo')
+        self.assertEqual(todo.due_date, due_date)
+        self.assertIsNotNone(todo.due_date)
+    
+    def test_todo_without_due_date_creation(self):
+        """期限日なしTodoの作成をテスト。"""
+        todo = Todo.objects.create(
+            title='期限日なしTodo',
+            description='テスト用説明',
+            user=self.user
+        )
+        
+        self.assertEqual(todo.title, '期限日なしTodo')
+        self.assertIsNone(todo.due_date)
+    
+    def test_due_date_validation_past_date(self):
+        """過去の期限日でバリデーションエラーが発生することをテスト。"""
+        past_date = timezone.now() - timedelta(days=1)
+        todo = Todo(
+            title='過去期限日Todo',
+            description='テスト用説明',
+            user=self.user,
+            due_date=past_date
+        )
+        
+        with self.assertRaises(ValidationError):
+            todo.full_clean()
+    
+    def test_due_date_validation_future_date(self):
+        """未来の期限日でバリデーションが通ることをテスト。"""
+        future_date = timezone.now() + timedelta(days=1)
+        todo = Todo(
+            title='未来期限日Todo',
+            description='テスト用説明',
+            user=self.user,
+            due_date=future_date
+        )
+        
+        # バリデーションエラーが発生しないことを確認
+        try:
+            todo.full_clean()
+        except ValidationError:
+            self.fail("未来の期限日でバリデーションエラーが発生しました")
+    
+    def test_due_date_validation_current_date(self):
+        """現在日時の期限日でバリデーションが通ることをテスト。"""
+        current_date = timezone.now()
+        todo = Todo(
+            title='当日期限日Todo',
+            description='テスト用説明',
+            user=self.user,
+            due_date=current_date
+        )
+        
+        # バリデーションエラーが発生しないことを確認
+        try:
+            todo.full_clean()
+        except ValidationError:
+            self.fail("当日の期限日でバリデーションエラーが発生しました")
+
+
+class TodoDueStatusTestCase(TestCase):
+    """Todo期限ステータス判定機能のテストケース。
+    
+    期限切れ、期限間近、期限まで余裕あり等のステータス判定機能をテストします。
+    """
+    
+    def setUp(self):
+        """テスト用の初期データを設定。"""
+        self.user = User.objects.create_user(
+            username='testuser',
+            password='testpass123'
+        )
+    
+    def test_is_overdue_with_past_date(self):
+        """期限切れTodoの判定をテスト。"""
+        past_date = timezone.now() - timedelta(days=1)
+        todo = Todo.objects.create(
+            title='期限切れTodo',
+            user=self.user,
+            due_date=past_date
+        )
+        
+        self.assertTrue(todo.is_overdue())
+    
+    def test_is_overdue_with_future_date(self):
+        """期限前Todoの判定をテスト。"""
+        future_date = timezone.now() + timedelta(days=1)
+        todo = Todo.objects.create(
+            title='期限前Todo',
+            user=self.user,
+            due_date=future_date
+        )
+        
+        self.assertFalse(todo.is_overdue())
+    
+    def test_is_overdue_without_due_date(self):
+        """期限日なしTodoの判定をテスト。"""
+        todo = Todo.objects.create(
+            title='期限日なしTodo',
+            user=self.user
+        )
+        
+        self.assertFalse(todo.is_overdue())
+    
+    def test_is_due_soon_within_3_days(self):
+        """3日以内期限のTodoの判定をテスト。"""
+        soon_date = timezone.now() + timedelta(days=2)
+        todo = Todo.objects.create(
+            title='期限間近Todo',
+            user=self.user,
+            due_date=soon_date
+        )
+        
+        self.assertTrue(todo.is_due_soon())
+    
+    def test_is_due_soon_beyond_3_days(self):
+        """3日超期限のTodoの判定をテスト。"""
+        far_date = timezone.now() + timedelta(days=5)
+        todo = Todo.objects.create(
+            title='期限余裕Todo',
+            user=self.user,
+            due_date=far_date
+        )
+        
+        self.assertFalse(todo.is_due_soon())
+    
+    def test_is_due_soon_without_due_date(self):
+        """期限日なしTodoの期限間近判定をテスト。"""
+        todo = Todo.objects.create(
+            title='期限日なしTodo',
+            user=self.user
+        )
+        
+        self.assertFalse(todo.is_due_soon())
+    
+    def test_is_due_today(self):
+        """今日期限のTodoの判定をテスト。"""
+        today = timezone.now().replace(hour=23, minute=59, second=59)
+        todo = Todo.objects.create(
+            title='今日期限Todo',
+            user=self.user,
+            due_date=today
+        )
+        
+        self.assertTrue(todo.is_due_today())
+    
+    def test_is_due_today_tomorrow(self):
+        """明日期限のTodoの判定をテスト。"""
+        tomorrow = timezone.now() + timedelta(days=1)
+        todo = Todo.objects.create(
+            title='明日期限Todo',
+            user=self.user,
+            due_date=tomorrow
+        )
+        
+        self.assertFalse(todo.is_due_today())
+    
+    def test_get_due_status_overdue(self):
+        """期限切れステータスの取得をテスト。"""
+        past_date = timezone.now() - timedelta(days=1)
+        todo = Todo.objects.create(
+            title='期限切れTodo',
+            user=self.user,
+            due_date=past_date
+        )
+        
+        self.assertEqual(todo.get_due_status(), 'overdue')
+    
+    def test_get_due_status_due_today(self):
+        """今日期限ステータスの取得をテスト。"""
+        today = timezone.now().replace(hour=23, minute=59, second=59)
+        todo = Todo.objects.create(
+            title='今日期限Todo',
+            user=self.user,
+            due_date=today
+        )
+        
+        self.assertEqual(todo.get_due_status(), 'due_today')
+    
+    def test_get_due_status_due_soon(self):
+        """期限間近ステータスの取得をテスト。"""
+        soon_date = timezone.now() + timedelta(days=2)
+        todo = Todo.objects.create(
+            title='期限間近Todo',
+            user=self.user,
+            due_date=soon_date
+        )
+        
+        self.assertEqual(todo.get_due_status(), 'due_soon')
+    
+    def test_get_due_status_normal(self):
+        """通常ステータスの取得をテスト。"""
+        far_date = timezone.now() + timedelta(days=7)
+        todo = Todo.objects.create(
+            title='通常Todo',
+            user=self.user,
+            due_date=far_date
+        )
+        
+        self.assertEqual(todo.get_due_status(), 'normal')
+    
+    def test_get_due_status_no_due_date(self):
+        """期限日なしステータスの取得をテスト。"""
+        todo = Todo.objects.create(
+            title='期限日なしTodo',
+            user=self.user
+        )
+        
+        self.assertEqual(todo.get_due_status(), 'no_due_date')
