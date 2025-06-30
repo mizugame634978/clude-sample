@@ -29,7 +29,7 @@ class TodoForm(forms.ModelForm):
             widgets: 各フィールドのウィジェット設定。
         """
         model = Todo
-        fields = ['title', 'description']
+        fields = ['title', 'description', 'due_date']
         widgets = {
             'title': forms.TextInput(attrs={
                 'class': 'form-control', 
@@ -39,5 +39,10 @@ class TodoForm(forms.ModelForm):
                 'class': 'form-control', 
                 'rows': 4, 
                 'placeholder': '詳細を入力してください（任意）'
+            }),
+            'due_date': forms.DateTimeInput(attrs={
+                'class': 'form-control flatpickr-datetime',
+                'placeholder': '期限日時を選択してください（任意）',
+                'readonly': True
             }),
         }

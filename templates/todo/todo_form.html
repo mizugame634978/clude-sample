@@ -26,6 +26,16 @@
                             <div class="text-danger">{{ form.description.errors }}</div>
                         {% endif %}
                     </div>
+                    <div class="mb-3">
+                        <label for="{{ form.due_date.id_for_label }}" class="form-label">
+                            <i class="bi bi-calendar-event"></i> {{ form.due_date.label }}
+                        </label>
+                        {{ form.due_date }}
+                        {% if form.due_date.errors %}
+                            <div class="text-danger">{{ form.due_date.errors }}</div>
+                        {% endif %}
+                        <div class="form-text">期限日時を設定すると、期限が近づいた際にアラートが表示されます。</div>
+                    </div>
                     <div class="d-flex gap-2">
                         <button type="submit" class="btn btn-primary">保存</button>
                         <a href="{% url 'todo_list' %}" class="btn btn-secondary">キャンセル</a>
@@ -35,4 +45,28 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Flatpickrの初期化
+    flatpickr('.flatpickr-datetime', {
+        enableTime: true,
+        dateFormat: "Y-m-d H:i",
+        time_24hr: true,
+        locale: "ja",
+        minDate: "today",
+        allowInput: true,
+        defaultHour: 23,
+        defaultMinute: 59,
+        onClose: function(selectedDates, dateStr, instance) {
+            // 空の場合は値をクリア
+            if (dateStr === '') {
+                instance.clear();
+            }
+        }
+    });
+});
+</script>
 {% endblock %}

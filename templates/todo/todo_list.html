@@ -13,7 +13,7 @@
     <div class="row">
         {% for todo in todos %}
             <div class="col-md-6 mb-3">
-                <div class="card {% if todo.completed %}bg-light{% endif %}">
+                <div class="card {% if todo.completed %}bg-light{% elif todo.get_due_status == 'overdue' %}border-danger{% elif todo.get_due_status == 'due_today' %}border-warning{% elif todo.get_due_status == 'due_soon' %}border-info{% endif %}">
                     <div class="card-body">
                         <div class="d-flex justify-content-between align-items-start">
                             <div class="flex-grow-1">
@@ -25,6 +25,32 @@
                                         {{ todo.description|linebreaksbr }}
                                     </p>
                                 {% endif %}
+                                
+                                {% if todo.due_date %}
+                                    <div class="mb-2">
+                                        {% if todo.get_due_status == 'overdue' %}
+                                            <span class="badge bg-danger">
+                                                <i class="bi bi-exclamation-triangle"></i> 期限切れ
+                                            </span>
+                                        {% elif todo.get_due_status == 'due_today' %}
+                                            <span class="badge bg-warning text-dark">
+                                                <i class="bi bi-clock"></i> 今日期限
+                                            </span>
+                                        {% elif todo.get_due_status == 'due_soon' %}
+                                            <span class="badge bg-info text-dark">
+                                                <i class="bi bi-calendar-event"></i> 期限間近
+                                            </span>
+                                        {% else %}
+                                            <span class="badge bg-light text-dark">
+                                                <i class="bi bi-calendar-check"></i> 期限あり
+                                            </span>
+                                        {% endif %}
+                                        <small class="text-muted ms-2">
+                                            期限: {{ todo.due_date|date:"Y/m/d H:i" }}
+                                        </small>
+                                    </div>
+                                {% endif %}
+                                
                                 <small class="text-muted">
                                     作成日: {{ todo.created_at|date:"Y/m/d H:i" }}
                                     {% if todo.updated_at != todo.created_at %}

@@ -541,3 +541,199 @@ class TodoDueStatusTestCase(TestCase):
         )
         
         self.assertEqual(todo.get_due_status(), 'no_due_date')
+
+
+class TodoFormTestCase(TestCase):
+    """Todoフォーム機能のテストケース。
+    
+    期限日フィールドを含むフォームのバリデーションとUI機能をテストします。
+    """
+    
+    def setUp(self):
+        """テスト用の初期データを設定。"""
+        self.user = User.objects.create_user(
+            username='testuser',
+            password='testpass123'
+        )
+        self.client.login(username='testuser', password='testpass123')
+    
+    def test_todo_form_with_due_date(self):
+        """期限日付きTodoフォームの投稿をテスト。"""
+        future_date = timezone.now() + timedelta(days=7)
+        response = self.client.post(reverse('todo_create'), {
+            'title': 'フォームテスト用Todo',
+            'description': 'テスト用説明',
+            'due_date': future_date.strftime('%Y-%m-%d %H:%M')
+        })
+        
+        self.assertRedirects(response, reverse('todo_list'))
+        todo = Todo.objects.get(title='フォームテスト用Todo')
+        self.assertIsNotNone(todo.due_date)
+        # 期限日が設定されていることを確認（タイムゾーン差は許容）
+        self.assertIsNotNone(todo.due_date)
+        # 日付部分が一致することを確認
+        self.assertEqual(todo.due_date.date(), future_date.date())
+    
+    def test_todo_form_without_due_date(self):
+        """期限日なしTodoフォームの投稿をテスト。"""
+        response = self.client.post(reverse('todo_create'), {
+            'title': '期限日なしTodo',
+            'description': 'テスト用説明'
+        })
+        
+        self.assertRedirects(response, reverse('todo_list'))
+        todo = Todo.objects.get(title='期限日なしTodo')
+        self.assertIsNone(todo.due_date)
+    
+    def test_todo_form_invalid_past_date(self):
+        """過去の期限日でフォームエラーになることをテスト。"""
+        past_date = timezone.now() - timedelta(days=1)
+        response = self.client.post(reverse('todo_create'), {
+            'title': '過去期限日Todo',
+            'description': 'テスト用説明',
+            'due_date': past_date.strftime('%Y-%m-%d %H:%M')
+        })
+        
+        # フォームエラーで同じページに戻る
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, '期限日は過去の日付にできません')
+        self.assertFalse(Todo.objects.filter(title='過去期限日Todo').exists())
+    
+    def test_todo_update_form_with_due_date(self):
+        """期限日付きTodoの更新フォームをテスト。"""
+        todo = Todo.objects.create(
+            title='更新テスト用Todo',
+            description='テスト用説明',
+            user=self.user
+        )
+        
+        future_date = timezone.now() + timedelta(days=5)
+        response = self.client.post(reverse('todo_update', args=[todo.pk]), {
+            'title': '更新後タイトル',
+            'description': '更新後説明',
+            'due_date': future_date.strftime('%Y-%m-%d %H:%M')
+        })
+        
+        self.assertRedirects(response, reverse('todo_list'))
+        todo.refresh_from_db()
+        self.assertEqual(todo.title, '更新後タイトル')
+        self.assertIsNotNone(todo.due_date)
+
+
+class TodoUITestCase(TestCase):
+    """TodoのUI表示機能のテストケース。
+    
+    期限日表示と期限ステータスの視覚的表示をテストします。
+    """
+    
+    def setUp(self):
+        """テスト用の初期データを設定。"""
+        self.user = User.objects.create_user(
+            username='testuser',
+            password='testpass123'
+        )
+        self.client.login(username='testuser', password='testpass123')
+    
+    def test_todo_list_displays_due_date(self):
+        """Todo一覧に期限日が表示されることをテスト。"""
+        due_date = timezone.now() + timedelta(days=3)
+        todo = Todo.objects.create(
+            title='期限日表示テスト',
+            description='テスト用説明',
+            user=self.user,
+            due_date=due_date
+        )
+        
+        response = self.client.get(reverse('todo_list'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, '期限:')
+        self.assertContains(response, due_date.strftime('%Y/%m/%d'))
+    
+    def test_overdue_todo_visual_status(self):
+        """期限切れTodoの視覚的ステータス表示をテスト。"""
+        past_date = timezone.now() - timedelta(days=1)
+        todo = Todo.objects.create(
+            title='期限切れTodo',
+            user=self.user,
+            due_date=past_date
+        )
+        
+        response = self.client.get(reverse('todo_list'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'badge bg-danger')
+        self.assertContains(response, '期限切れ')
+        self.assertContains(response, 'border-danger')
+    
+    def test_due_today_todo_visual_status(self):
+        """今日期限Todoの視覚的ステータス表示をテスト。"""
+        today = timezone.now().replace(hour=23, minute=59, second=59)
+        todo = Todo.objects.create(
+            title='今日期限Todo',
+            user=self.user,
+            due_date=today
+        )
+        
+        response = self.client.get(reverse('todo_list'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'badge bg-warning')
+        self.assertContains(response, '今日期限')
+        self.assertContains(response, 'border-warning')
+    
+    def test_due_soon_todo_visual_status(self):
+        """期限間近Todoの視覚的ステータス表示をテスト。"""
+        soon_date = timezone.now() + timedelta(days=2)
+        todo = Todo.objects.create(
+            title='期限間近Todo',
+            user=self.user,
+            due_date=soon_date
+        )
+        
+        response = self.client.get(reverse('todo_list'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'badge bg-info')
+        self.assertContains(response, '期限間近')
+        self.assertContains(response, 'border-info')
+    
+    def test_normal_due_date_todo_visual_status(self):
+        """通常期限Todoの視覚的ステータス表示をテスト。"""
+        future_date = timezone.now() + timedelta(days=7)
+        todo = Todo.objects.create(
+            title='通常期限Todo',
+            user=self.user,
+            due_date=future_date
+        )
+        
+        response = self.client.get(reverse('todo_list'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'badge bg-light')
+        self.assertContains(response, '期限あり')
+    
+    def test_no_due_date_todo_display(self):
+        """期限日なしTodoの表示をテスト。"""
+        todo = Todo.objects.create(
+            title='期限日なしTodo',
+            user=self.user
+        )
+        
+        response = self.client.get(reverse('todo_list'))
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, '期限:')
+        self.assertNotContains(response, 'badge bg-danger')
+        self.assertNotContains(response, 'badge bg-warning')
+        self.assertNotContains(response, 'badge bg-info')
+    
+    def test_todo_form_contains_due_date_field(self):
+        """Todoフォームに期限日フィールドが含まれることをテスト。"""
+        response = self.client.get(reverse('todo_create'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'flatpickr-datetime')
+        self.assertContains(response, '期限日時を選択してください')
+        self.assertContains(response, 'bi-calendar-event')
+    
+    def test_todo_form_contains_flatpickr_script(self):
+        """TodoフォームにFlatpickr初期化スクリプトが含まれることをテスト。"""
+        response = self.client.get(reverse('todo_create'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'flatpickr(')
+        self.assertContains(response, 'enableTime: true')
+        self.assertContains(response, 'locale: "ja"')
