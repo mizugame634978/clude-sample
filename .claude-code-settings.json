@@ -46,7 +46,8 @@
       "find . -name *",
       "ls */",
       "gh pr view *",
-      "gh issue view *"
+      "gh issue view *",
+      "find  * "
     ],
     "categories": {
       "readOnly": {
